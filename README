@@ -1,4 +1,4 @@
-Apache/ParseFormData version 0.01
+Apache/ParseFormData version 0.02
 =================================
 
 The Apache::ParseFormData module allows you to easily decode and parse
@@ -29,5 +29,4 @@ Put the correct copyright and licence information here.
 Copyright (C) 2003 Henrique Dias
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself. 
-
+it under the same terms as Perl itself.

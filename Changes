@@ -1,5 +1,10 @@
 Revision history for Perl extension Apache::ParseFormData.
 
+0.02  Mon Jul 21 11:14:51 WEST 2003
+	- "delete" and "delete_all" methods have been added
+	- now, is possible set multiple values in param method like CGI.pm
+	- the documetation was also updated
+
 0.01  Fri Jul 18 18:09:51 WEST 2003
 	- original version; created by h2xs 1.22 with options
 		-X -n Apache::ParseFormData

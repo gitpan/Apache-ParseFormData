@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Fri Jul 18 18:07:49 WEST 2003
+# Last Modification: Mon Jul 21 10:59:57 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -19,8 +19,11 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 require 5;
+
+use constant NELTS => 10;
+use constant BUFFLENGTH => 1024;
 
 sub new {
 	my $proto = shift;
@@ -32,7 +35,7 @@ sub new {
 		post_max        => 0,
 		@_,
 	);
-	my $table = APR::Table::make($self->pool, 10);
+	my $table = APR::Table::make($self->pool, NELTS);
 	$self->pnotes('ap_req' => $table);
 	bless ($self, $class);
 
@@ -83,7 +86,6 @@ sub content {
 	my $buf = "";
 	$r->setup_client_block;
 	$r->should_client_block or return '';
-	my $len = $r->headers_in->get('content-length');
 	my $ct = $r->headers_in->get('content-type');
 	if($ct =~ /^multipart\/form-data; boundary=(.+)$/) {
 		my $boundary = $1;
@@ -91,10 +93,9 @@ sub content {
 		$r->get_client_block($buf, $lenbdr+2);
 		$buf = substr($buf, $lenbdr);
 		$buf =~ s/[\n\r]+//;
-		my $len = 1024;
 		my $iter = -1;
 		my @data = ();
-		&multipart_data($r, $args, \@data, $boundary, $len, 1, $buf, $iter);
+		&multipart_data($r, $args, \@data, $boundary, BUFFLENGTH, 1, $buf, $iter);
 		my @uploads = ();
 		for(@data) {
 			if(exists($_->{'headers'}->{'content-disposition'})) {
@@ -130,6 +131,7 @@ sub content {
 		$r->pnotes('upload' => \@uploads);
 		return();
 	} else {
+		my $len = $r->headers_in->get('content-length');
 		$r->get_client_block($buf, $len);
 		&_parse_query($r, $buf) if($buf);
 	}
@@ -241,22 +243,38 @@ sub multipart_data {
 	return();
 }
 
+sub delete {
+	my $self = shift;
+	map { $self->parms->unset($_); } @_;
+	return();
+}
+
+sub delete_all {
+	my $self = shift;
+	$self->parms->clear();
+	return();
+}
+
 sub param {
 	my $self = shift;
 
-	if(scalar(@_) == 2) {
-		my ($key, $value) = @_;
-		my @transfer = (ref($value) eq "HASH") ? %{$value} : (ref($value) eq "ARRAY") ? @{$value} : ($value);
-		unless($self->parms->get($key)) {
-			my $first = shift(@transfer);
-			$self->parms->set($key => $first);
+	if(scalar(@_) > 1) {
+		my %hash = @_;
+		while(my ($k, $v) = each(%hash)) {
+			my @transfer = (ref($v) eq "HASH") ? %{$v} : (ref($v) eq "ARRAY") ? @{$v} : ($v);
+			unless($self->parms->get($k)) {
+				my $first = shift(@transfer);
+				$self->parms->set($k => $first);
+			}
+			map { $self->parms->add($k, $_); } @transfer;
 		}
-		map { $self->parms->add($key, $_); } @transfer;
-	} else {
-		my $key = shift;
-		return($self->parms->get($key));
+		return();
 	}
-	return();
+	if(scalar(@_) == 1) {
+		my $k = shift;
+		return($self->parms->get($k));
+	}
+	return(keys(%{$self->parms}));
 }
 
 1;
@@ -355,6 +373,36 @@ script.
   $apr->param('hash_test' => \%hash);
   my %h_test = $apr->param('hash_test');
   print $h_test{'a'};
+
+You can create a parameter with multiple values by passing additional
+arguments:
+
+  $apr->param(
+    'color'    => "red",
+    'numbers'  => [0,1,2,3,4,5,6,7,8,9],
+    'language' => "perl",
+  );
+
+Fetching the names of all the parameters passed to your script:
+
+  foreach my $name (@names) {
+    my $value = $apr->param($name);
+    print "$name => $value\n";
+  }
+
+=head2 delete
+
+To delete a parameter provide the name of the parameter:
+
+  $apr->param("color");
+
+You can delete multiple values:
+
+  $apr->param("color", "nembers");
+
+=head2 delete_all
+
+This method clear all of the parameters
 
 =head2 upload
 
