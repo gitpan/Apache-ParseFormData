@@ -1,4 +1,4 @@
-Apache/ParseFormData version 0.07
+Apache/ParseFormData version 0.08
 =================================
 
 The Apache::ParseFormData module allows you to easily decode and parse
@@ -22,11 +22,14 @@ This module requires these other modules and libraries:
   mod_perl-2.0
   perl 5.8
 
+BUG REPORTS AND SUGGESTIONS
+
+Questions, bug reports, useful code bits, and suggestions for
+Apache::ParseFormData hould just be sent to me at hdias@aesbuc.pt
+
 COPYRIGHT AND LICENCE
 
-Put the correct copyright and licence information here.
-
-Copyright (C) 2003 Henrique Dias
+Copyright (C) 2003 Henrique Dias. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Wed Jul 30 11:12:36 WEST 2003
+# Last Modification: Tue Oct 21 11:24:40 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 require 5;
 
 use constant NELTS => 10;
@@ -412,7 +412,7 @@ Disable file uploads.
   my $apr = Apache::ParseFormData->new($r, disable_uploads => 1);
 
   my $status = $apr->parse_result;
-  unless($status == APACHE::OK) {
+  unless($status == Apache::OK) {
     my $error = $apr->notes->get("error-notes");
     ...
     return $status;
@@ -425,7 +425,7 @@ Limit the size of POST data.
   my $apr = Apache::ParseFormData->new($r, post_max => 1024);
 
   my $status = $apr->parse_result;
-  unless($status == APACHE::OK) {
+  unless($status == Apache::OK) {
     my $error = $apr->notes->get("error-notes");
     ...
     return $status;
