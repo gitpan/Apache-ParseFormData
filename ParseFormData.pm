@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Thu Jul 24 14:00:07 WEST 2003
+# Last Modification: Fri Jul 25 15:39:16 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -13,6 +13,7 @@ package Apache::ParseFormData;
 use strict;
 use Apache::Log;
 use Apache::Const -compile => qw(OK M_POST M_GET FORBIDDEN HTTP_REQUEST_ENTITY_TOO_LARGE);
+use Apache::RequestIO ();
 use APR::Table;
 use IO::File;
 use POSIX qw(tmpnam);
@@ -20,7 +21,7 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 require 5;
 
 use constant NELTS => 10;
@@ -346,7 +347,6 @@ Apache::ParseFormData - Perl extension for dealing with client request data
 
   use Apache::RequestRec ();
   use Apache::RequestUtil ();
-  use Apache::RequestIO ();
   use Apache::Const -compile => qw(DECLINED OK);
   use Apache::ParseFormData;
 

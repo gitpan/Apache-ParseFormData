@@ -1,5 +1,9 @@
 Revision history for Perl extension Apache::ParseFormData.
 
+0.06  Fri Jul 25 15:39:30 WEST 2003
+	- a small bug in "parse_content" was fixed
+	- the documetation has been updated
+
 0.05  Thu Jul 24 14:00:22 WEST 2003
 	- the cookies are implemented
 	- the "_parse_query" method has changed
