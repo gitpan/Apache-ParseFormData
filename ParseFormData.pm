@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Tue Jul 22 18:43:51 WEST 2003
+# Last Modification: Thu Jul 24 14:00:07 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 require 5;
 
 use constant NELTS => 10;
@@ -40,6 +40,9 @@ sub new {
 	$self->pnotes('apr_req' => $table);
 	bless ($self, $class);
 
+	if(my $data = $self->headers_in->get('cookie')) {
+		&_parse_query($self, $data, " *; *");
+	}
 	if($self->method_number == Apache::M_POST) {
 		$self->pnotes('apr_req_result' => &parse_content($self, \%args));
 	} elsif($self->method_number == Apache::M_GET) {
@@ -52,8 +55,8 @@ sub new {
 
 sub DESTROY {  
 	my $self = shift;
-	for my $upload ($self->upload()) {
-		my $path = $upload->[2];
+	for my $v (values(%{$self->pnotes('upload')})) {
+		my $path = $v->[1];
 		unlink($path) if(-e $path);
 	}
 }
@@ -65,20 +68,55 @@ sub parms { $_[0]->pnotes('apr_req') }
 sub _parse_query {
 	my $r = shift;
 	my $query_string = shift;
+	my $re = shift || "&";
 
-	for(split(/&/, $query_string)) {
+	my %hash = ();
+	for(split(/$re/, $query_string)) {
 		my ($n, $v) = split(/=/);
 		defined($v) or $v = "";
 		&decode_chars($n);
 		&decode_chars($v);
-		$r->param($n => $v);
+		push(@{$hash{$n}}, $v);
 	}
+	$r->param(%hash);
 	return();
 }
 
 sub decode_chars {
 	$_[0] =~ tr/+/ /;
 	$_[0] =~ s/%([\dA-Fa-f][\dA-Fa-f])/pack("C", hex($1))/egi;
+}
+
+sub set_cookie {
+	my $self = shift;
+	my $args = {
+		name    => "",
+		value   => "",
+		path    => "/",
+		expires => "",
+		secure  => 0,
+		domain  => "",
+		@_,
+	};
+	$args->{'name'} or return();
+	my @a = (
+		join("=", $args->{'name'}, $args->{'value'}),
+		join("=", "path", $args->{'path'}),
+	);
+	push(@a, join("=", "expires", &cookie_expire($args->{'expires'}))) if($args->{'expires'});
+	push(@a, join("=", "secure", $args->{'secure'})) if($args->{'secure'});
+	push(@a, join("=", "domain", $args->{'domain'})) if($args->{'domain'});
+	$self->headers_out->{'Set-Cookie'} = join(";", @a);
+	$self->param($args->{'name'} => $args->{'value'});
+	return();
+}
+
+sub cookie_expire {
+	my $time = shift;
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday) = localtime($time);
+	my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+	my @weekday = qw(Sun Mon Tue Wed Thu Fri Sat);
+	return sprintf("%3s, %02d-%3s-%04d %02d:%02d:%02d GMT", $weekday[$wday], $mday, $months[$mon], $year+1900, $hour, $min, $sec);
 }
 
 sub upload {
@@ -128,8 +166,8 @@ sub parse_content {
 						my ($key) = ($a[0] =~ /name=\"([^\"]+)\"/);
 						$r->param($key => $_->{'values'} || "");
 					} else {
-						my $fh = $_->{'values'}->[0];
-						my $path = $_->{'values'}->[1];
+						(ref($_->{'values'}) eq "ARRAY") or next;
+						my ($fh, $path) = @{$_->{'values'}};
 						seek($fh, 0, 0);
 						my %hash = (
 							filename => "",
@@ -284,10 +322,8 @@ sub param {
 		my %hash = @_;
 		while(my ($k, $v) = each(%hash)) {
 			my @transfer = (ref($v) eq "HASH") ? %{$v} : (ref($v) eq "ARRAY") ? @{$v} : ($v);
-			unless($self->parms->get($k)) {
-				my $first = shift(@transfer);
-				$self->parms->set($k => $first);
-			}
+			my $first = shift(@transfer) || "";
+			$self->parms->set($k => $first);
 			map { $self->parms->add($k, $_); } @transfer;
 		}
 		return();
@@ -480,6 +516,33 @@ like the value of any other form element.
     my $size = $file_hash{'size'};
     unlink($path);
   }
+
+=head2 set_cookie
+
+Set the cookies before send any printable data to client.
+
+  my $apr = Apache::Request->new($r);
+
+  $apr->set_cookie(
+    name    => "foo",
+    value   => "bar",
+    path    => "/cgi-bin/database",
+    expires => time + 3600,
+    secure  => 1,
+    domain  => ".capricorn.com",
+  );
+
+Get the value of foo:
+
+  $apr->param('foo');
+
+Clean cookie:
+
+  $apr->set_cookie(
+    name    => "foo",
+    value   => "",
+    expires => time - 3600,
+  );
 
 =head1 SEE ALSO
 
