@@ -1,5 +1,10 @@
 Revision history for Perl extension Apache::ParseFormData.
 
+0.07  Wed Jul 30 11:29:29 WEST 2003
+	- fixed documentation where it saids "Apache::Request" starts to
+	  say "Apache::ParseFormData"
+	  Thanks to Stas Bekman <stas@stason.org>
+
 0.06  Fri Jul 25 15:39:30 WEST 2003
 	- a small bug in "parse_content" was fixed
 	- the documetation has been updated

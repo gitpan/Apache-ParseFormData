@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Fri Jul 25 15:39:16 WEST 2003
+# Last Modification: Wed Jul 30 11:12:36 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 require 5;
 
 use constant NELTS => 10;
@@ -409,7 +409,7 @@ Directory where the upload files are stored.
 
 Disable file uploads.
 
-  my $apr = Apache::Request->new($r, disable_uploads => 1);
+  my $apr = Apache::ParseFormData->new($r, disable_uploads => 1);
 
   my $status = $apr->parse_result;
   unless($status == APACHE::OK) {
@@ -422,7 +422,7 @@ Disable file uploads.
 
 Limit the size of POST data.
 
-  my $apr = Apache::Request->new($r, post_max => 1024);
+  my $apr = Apache::ParseFormData->new($r, post_max => 1024);
 
   my $status = $apr->parse_result;
   unless($status == APACHE::OK) {
@@ -521,7 +521,7 @@ like the value of any other form element.
 
 Set the cookies before send any printable data to client.
 
-  my $apr = Apache::Request->new($r);
+  my $apr = Apache::ParseFormData->new($r);
 
   $apr->set_cookie(
     name    => "foo",
