@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Mon Jul 21 17:51:53 WEST 2003
+# Last Modification: Tue Jul 22 18:43:51 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -11,7 +11,8 @@
 package Apache::ParseFormData;
 
 use strict;
-use Apache::Const -compile => qw(M_POST M_GET :log);
+use Apache::Log;
+use Apache::Const -compile => qw(OK M_POST M_GET FORBIDDEN HTTP_REQUEST_ENTITY_TOO_LARGE);
 use APR::Table;
 use IO::File;
 use POSIX qw(tmpnam);
@@ -19,7 +20,7 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 require 5;
 
 use constant NELTS => 10;
@@ -36,14 +37,15 @@ sub new {
 		@_,
 	);
 	my $table = APR::Table::make($self->pool, NELTS);
-	$self->pnotes('ap_req' => $table);
+	$self->pnotes('apr_req' => $table);
 	bless ($self, $class);
 
 	if($self->method_number == Apache::M_POST) {
-		&content($self, \%args);
+		$self->pnotes('apr_req_result' => &parse_content($self, \%args));
 	} elsif($self->method_number == Apache::M_GET) {
 		my $data = $self->args();
 		&_parse_query($self, $data) if($data);
+		$self->pnotes('apr_req_result' => Apache::OK);
 	}
 	return($self);
 }
@@ -56,7 +58,9 @@ sub DESTROY {
 	}
 }
 
-sub parms { $_[0]->pnotes('ap_req') }
+sub parse_result { $_[0]->pnotes('apr_req_result') }
+
+sub parms { $_[0]->pnotes('apr_req') }
 
 sub _parse_query {
 	my $r = shift;
@@ -83,7 +87,7 @@ sub upload {
 	return($name ? @{$self->pnotes('upload')->{$name}} : keys(%{$self->pnotes('upload')}));
 }
 
-sub content {
+sub parse_content {
 	my $r = shift;
 	my $args = shift;
 
@@ -91,6 +95,21 @@ sub content {
 	$r->setup_client_block;
 	$r->should_client_block or return '';
 	my $ct = $r->headers_in->get('content-type');
+
+	if($args->{'disable_uploads'} && index($ct, "multipart/form-data") > -1) {
+		my $error_str = "[Apache::ParseFormData] file upload forbidden";
+		$r->notes->set("error-notes" => $error_str);
+		$r->log_error($error_str);
+		return(Apache::FORBIDDEN);
+	}
+	my $rm = $r->remaining;
+	if($args->{'post_max'} && ($rm > $args->{'post_max'})) {
+		my $pm = $args->{'post_max'};
+		my $error_str = "[Apache::ParseFormData] entity too large ($rm, max=$pm)";
+		$r->notes->set("error-notes" => $error_str);
+		$r->log_error($error_str);
+		return(Apache::HTTP_REQUEST_ENTITY_TOO_LARGE);
+	}
 	if($ct =~ /^multipart\/form-data; boundary=(.+)$/) {
 		my $boundary = $1;
 		my $lenbdr = length("--$boundary");
@@ -133,13 +152,12 @@ sub content {
 			}
 		}
 		$r->pnotes('upload' => \%uploads);
-		return();
 	} else {
 		my $len = $r->headers_in->get('content-length');
 		$r->get_client_block($buf, $len);
 		&_parse_query($r, $buf) if($buf);
 	}
-	return $buf;
+	return(Apache::OK);
 }
 
 sub extract_headers {
@@ -293,7 +311,6 @@ Apache::ParseFormData - Perl extension for dealing with client request data
   use Apache::RequestRec ();
   use Apache::RequestUtil ();
   use Apache::RequestIO ();
-  use Apache::Log;
   use Apache::Const -compile => qw(DECLINED OK);
   use Apache::ParseFormData;
 
@@ -311,11 +328,11 @@ Apache::ParseFormData - Perl extension for dealing with client request data
     my @a_test = $apr->param('array_test');
     print $a_test[0];
 
-    my %hash = {
+    my %hash = (
       a => 1,
       b => 2,
       c => 3,
-    };
+    );
     $apr->param('hash_test' => \%hash);
     my %h_test = $apr->param('hash_test');
     print $h_test{'a'};
@@ -346,13 +363,43 @@ Create a new I<Apache::ParseFormData> object. The methods from I<Apache>
 class are inherited. The optional arguments which can be passed to the 
 method are the following:
 
-=over 1
+=over 3
 
 =item temp_dir
 
 Directory where the upload files are stored.
 
+=item disable_uploads
+
+Disable file uploads.
+
+  my $apr = Apache::Request->new($r, disable_uploads => 1);
+
+  my $status = $apr->parse_result;
+  unless($status == APACHE::OK) {
+    my $error = $apr->notes->get("error-notes");
+    ...
+    return $status;
+  }
+
+=item post_max
+
+Limit the size of POST data.
+
+  my $apr = Apache::Request->new($r, post_max => 1024);
+
+  my $status = $apr->parse_result;
+  unless($status == APACHE::OK) {
+    my $error = $apr->notes->get("error-notes");
+    ...
+    return $status;
+  }
+
 =back
+
+=head2 parse_result
+
+return the status code after the request is parsed.
 
 =head2 param
 
@@ -369,11 +416,11 @@ script.
   my @a_test = $apr->param('array_test');
   print $a_test[0];
 
-  my %hash = {
+  my %hash = (
     a => 1,
     b => 2,
     c => 3,
-  };
+  );
   $apr->param('hash_test' => \%hash);
   my %h_test = $apr->param('hash_test');
   print $h_test{'a'};
