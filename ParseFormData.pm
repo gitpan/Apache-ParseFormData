@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Mon Jul 21 10:59:57 WEST 2003
+# Last Modification: Mon Jul 21 17:51:53 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -19,7 +19,7 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 require 5;
 
 use constant NELTS => 10;
@@ -77,7 +77,11 @@ sub decode_chars {
 	$_[0] =~ s/%([\dA-Fa-f][\dA-Fa-f])/pack("C", hex($1))/egi;
 }
 
-sub upload { @{$_[0]->pnotes('upload')} }
+sub upload {
+	my $self = shift;
+	my $name = shift || "";
+	return($name ? @{$self->pnotes('upload')->{$name}} : keys(%{$self->pnotes('upload')}));
+}
 
 sub content {
 	my $r = shift;
@@ -96,7 +100,7 @@ sub content {
 		my $iter = -1;
 		my @data = ();
 		&multipart_data($r, $args, \@data, $boundary, BUFFLENGTH, 1, $buf, $iter);
-		my @uploads = ();
+		my %uploads = ();
 		for(@data) {
 			if(exists($_->{'headers'}->{'content-disposition'})) {
 				my @a = split(/ *; */, $_->{'headers'}->{'content-disposition'});
@@ -117,7 +121,7 @@ sub content {
 						for(@a) {
 							my ($name, $value) = (/([^=]+)=\"([^\"]+)\"/);
 							if($name eq "name") {
-								push(@uploads, [$value, $fh, $path]);
+								$uploads{$value} = [$fh, $path];
 								$param = $value;
 							} else {
 								$hash{$name} = $value;
@@ -128,7 +132,7 @@ sub content {
 				}
 			}
 		}
-		$r->pnotes('upload' => \@uploads);
+		$r->pnotes('upload' => \%uploads);
 		return();
 	} else {
 		my $len = $r->headers_in->get('content-length');
@@ -414,10 +418,10 @@ like the value of any other form element.
   my $content_type = $file_hash{'type'};
   my $size = $file_hash{'size'};
 
-  for my $upload ($apr->upload()) {
-    my $form_name = $upload->[0];
-    my $fh = $upload->[1];
-    my $path = $upload->[2];
+  my ($fh, $path) = $apr->upload('file_0');
+
+  for my $form_name ($apr->upload()) {
+    my ($fh, $path) = $apr->upload($form_name);
 
     while(<$fh>) {
       print $_;

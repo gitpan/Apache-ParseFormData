@@ -1,5 +1,10 @@
 Revision history for Perl extension Apache::ParseFormData.
 
+0.03  Mon Jul 21 17:52:07 WEST 2003
+	- set the "PREREQ_PM" keyword in Makefile.PL file
+	- the return value of method "upload" was changed
+	- the documetation has been updated
+
 0.02  Mon Jul 21 11:14:51 WEST 2003
 	- "delete" and "delete_all" methods have been added
 	- now, is possible set multiple values in param method like CGI.pm

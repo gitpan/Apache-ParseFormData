@@ -1,4 +1,4 @@
-Apache/ParseFormData version 0.02
+Apache/ParseFormData version 0.03
 =================================
 
 The Apache::ParseFormData module allows you to easily decode and parse
