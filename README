@@ -1,4 +1,4 @@
-Apache/ParseFormData version 0.08
+Apache/ParseFormData version 0.09
 =================================
 
 The Apache::ParseFormData module allows you to easily decode and parse
@@ -20,7 +20,7 @@ DEPENDENCIES
 This module requires these other modules and libraries:
 
   mod_perl-2.0
-  perl 5.8
+  perl 5.8 or greater
 
 BUG REPORTS AND SUGGESTIONS
 

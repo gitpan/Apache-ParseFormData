@@ -1,5 +1,10 @@
 Revision history for Perl extension Apache::ParseFormData.
 
+0.09  Thu Oct 23 14:10:44 WEST 2003
+        - in "delete" description method where if reads "$apr->param" must
+	  read "$apr->delete".
+	  Thanks to Finn Hakansson <finn@df.lth.se>
+
 0.08  Tue Oct 21 11:51:04 WEST 2003
 	- another bug in documentation was fixed (the constant APACHE::OK
 	  was changed to Apache::OK).

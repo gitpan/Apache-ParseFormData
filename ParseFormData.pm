@@ -1,7 +1,7 @@
 #############################################################################
 #
 # Apache::ParseFormData
-# Last Modification: Tue Oct 21 11:24:40 WEST 2003
+# Last Modification: Thu Oct 23 11:44:58 WEST 2003
 #
 # Copyright (c) 2003 Henrique Dias <hdias@aesbuc.pt>. All rights reserved.
 # This module is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@ require Exporter;
 our @ISA = qw(Exporter Apache::RequestRec);
 our %EXPORT_TAGS = ( 'all' => [ qw() ] );
 our @EXPORT = qw();
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 require 5;
 
 use constant NELTS => 10;
@@ -481,11 +481,11 @@ Fetching the names of all the parameters passed to your script:
 
 To delete a parameter provide the name of the parameter:
 
-  $apr->param("color");
+  $apr->delete("color");
 
 You can delete multiple values:
 
-  $apr->param("color", "nembers");
+  $apr->delete("color", "nembers");
 
 =head2 delete_all
 
